@@ -37,6 +37,7 @@ class RobertaModelFaug(FairseqEncoderModel):
 
     def __init__(self, args, encoder):
         super().__init__(encoder)
+        # args = self.add_args(args)
         self.args = args
 
         # We follow BERT's random weight initialization

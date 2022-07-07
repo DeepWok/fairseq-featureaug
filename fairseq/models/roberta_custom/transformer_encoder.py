@@ -104,10 +104,13 @@ class TransformerEncoderBase(FairseqEncoder):
         else:
             self.layer_norm = None
 
+        import pdb; pdb.set_trace()
+        self.transforms = None
         if my_transforms is not None:
             if isinstance(my_transforms, dict):
                 self.transforms = my_transforms
             self.transforms = nn.ModuleDict(self.transforms)
+        import pdb; pdb.set_trace()
 
     def build_encoder_layer(self, cfg):
         layer = transformer_layer.TransformerEncoderLayerBase(
@@ -308,7 +311,6 @@ class TransformerEncoderBase(FairseqEncoder):
                 fc_result = None
             t_name = f'encoder_layer_{i}'
             if self.training and t_name in self.transforms:
-                import pdb; pdb.set_trace()
                 x = self.transforms[t_name](x)
 
             if return_all_hiddens and not torch.jit.is_scripting():
