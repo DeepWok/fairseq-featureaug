@@ -24,6 +24,7 @@ from fairseq.modules import (
 )
 from fairseq.modules.checkpoint_activations import checkpoint_wrapper
 from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
+from .collections import get_transform
 
 
 # rewrite name for backward compatibility in `make_generation_fast_`
@@ -47,7 +48,7 @@ class TransformerEncoderBase(FairseqEncoder):
 
     def __init__(
             self, cfg, dictionary, embed_tokens, 
-            return_fc=False, my_transforms=None):
+            return_fc=False, my_transform=None):
         self.cfg = cfg
         super().__init__(dictionary)
         self.register_buffer("version", torch.Tensor([3]))
@@ -104,13 +105,16 @@ class TransformerEncoderBase(FairseqEncoder):
         else:
             self.layer_norm = None
 
-        import pdb; pdb.set_trace()
         self.transforms = None
-        if my_transforms is not None:
-            if isinstance(my_transforms, dict):
-                self.transforms = my_transforms
-            self.transforms = nn.ModuleDict(self.transforms)
-        import pdb; pdb.set_trace()
+        if my_transform is not None:
+            import yaml
+            transform_cfg = yaml.safe_load(open(my_transform, 'r'))
+            mykey = list(transform_cfg.keys())[0] 
+            t = get_transform(mykey, transform_cfg[mykey])
+            transforms = {}
+            for i in range(self.num_layers):
+                transforms[f'encoder_layer_{i}'] = t
+            self.transforms = nn.ModuleDict(transforms)
 
     def build_encoder_layer(self, cfg):
         layer = transformer_layer.TransformerEncoderLayerBase(
@@ -311,6 +315,7 @@ class TransformerEncoderBase(FairseqEncoder):
                 fc_result = None
             t_name = f'encoder_layer_{i}'
             if self.training and t_name in self.transforms:
+                import pdb; pdb.set_trace()
                 x = self.transforms[t_name](x)
 
             if return_all_hiddens and not torch.jit.is_scripting():
@@ -440,11 +445,13 @@ class TransformerEncoderBase(FairseqEncoder):
 class TransformerEncoder(TransformerEncoderBase):
     def __init__(self, args, dictionary, embed_tokens, return_fc=False):
         self.args = args
+        transform = args['transform']
         super().__init__(
             TransformerConfig.from_namespace(args),
             dictionary,
             embed_tokens,
             return_fc=return_fc,
+            my_transform = transform
         )
 
     def build_encoder_layer(self, args):
