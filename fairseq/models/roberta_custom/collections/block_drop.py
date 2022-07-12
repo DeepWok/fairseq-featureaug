@@ -7,7 +7,7 @@ from torch import nn
 
 
 
-class DropBlock1D(nn.Module):
+class DropBlock2D(nn.Module):
     r"""Randomly zeroes 2D spatial blocks of the input tensor.
     As described in the paper
     `DropBlock: A regularization method for convolutional networks`_ ,
@@ -24,7 +24,7 @@ class DropBlock1D(nn.Module):
     """
 
     def __init__(self, drop_prob, block_size, scheduler_params=None):
-        super(DropBlock1D, self).__init__()
+        super(DropBlock2D, self).__init__()
 
         self.drop_prob = drop_prob
         self.block_size = block_size
@@ -47,7 +47,8 @@ class DropBlock1D(nn.Module):
 
     def forward(self, x):
         # shape: (bsize, channels, height, width)
-        assert x.dim() == 3, \
+
+        assert x.dim() == 4, \
             "Expected input with 4 dimensions (bsize, channels, height, width)"
 
         if not self.training or self.drop_prob == 0.:
@@ -66,7 +67,7 @@ class DropBlock1D(nn.Module):
             block_mask = self._compute_block_mask(mask)
 
             # apply block mask
-            out = x * block_mask[:, None, :]
+            out = x * block_mask[:, None, :, :]
 
             # scale output
             out = out * block_mask.numel() / block_mask.sum()
@@ -74,26 +75,27 @@ class DropBlock1D(nn.Module):
             return out
 
     def _compute_block_mask(self, mask):
-        block_mask = F.max_pool1d(input=mask[:, None, :],
-                                  kernel_size=self.block_size,
-                                  stride=1,
+        block_mask = F.max_pool2d(input=mask[:, None, :, :],
+                                  kernel_size=(self.block_size,
+                                               self.block_size),
+                                  stride=(1, 1),
                                   padding=self.block_size // 2)
 
         if self.block_size % 2 == 0:
-            block_mask = block_mask[:, :, :-1]
+            block_mask = block_mask[:, :, :-1, :-1]
 
         block_mask = 1 - block_mask.squeeze(1)
 
         return block_mask
 
     def _compute_gamma(self, x):
-        return self.drop_prob / (self.block_size)
+        return self.drop_prob / (self.block_size ** 2)
 
 
 
-class DropBlockChannel1D(nn.Module):
+class DropBlockChannel2D(nn.Module):
     def __init__(self, drop_prob, block_size, scheduler_params=None):
-        super(DropBlockChannel1D, self).__init__()
+        super(DropBlockChannel2D, self).__init__()
 
         self.drop_prob = drop_prob
         self.block_size = block_size
@@ -116,7 +118,7 @@ class DropBlockChannel1D(nn.Module):
 
     def forward(self, x):
 
-        assert x.dim() == 3, \
+        assert x.dim() == 4, \
             "Expected input with 4 dimensions (bsize, channels, height, width)"
 
         if not self.training or self.drop_prob == 0.:
@@ -143,25 +145,25 @@ class DropBlockChannel1D(nn.Module):
             return out
 
     def _compute_block_mask(self, mask):
-        block_mask = F.max_pool1d(
+        block_mask = F.max_pool2d(
             input=mask,
-            kernel_size=self.block_size,
-            stride=1,
+            kernel_size=(self.block_size, self.block_size),
+            stride=(1, 1),
             padding=self.block_size // 2)
 
         if self.block_size % 2 == 0:
-            block_mask = block_mask[:, :, :-1]
+            block_mask = block_mask[:, :, :-1, :-1]
         block_mask = 1 - block_mask.squeeze(1)
 
         return block_mask
 
     def _compute_gamma(self, x):
-        return self.drop_prob / (self.block_size)
+        return self.drop_prob / (self.block_size ** 2)
 
 
-class AdaptiveDropBlockChannel1D(nn.Module):
+class AdaptiveDropBlockChannel2D(nn.Module):
     def __init__(self, drop_prob, block_size, scheduler_params=None):
-        super(AdaptiveDropBlockChannel1D, self).__init__()
+        super(AdaptiveDropBlockChannel2D, self).__init__()
 
         self.drop_prob = drop_prob
         # self.threshold = threshold
@@ -184,7 +186,7 @@ class AdaptiveDropBlockChannel1D(nn.Module):
 
     def forward(self, x):
 
-        assert x.dim() == 3, \
+        assert x.dim() == 4, \
             "Expected input with 4 dimensions (bsize, channels, height, width)"
 
         if (not self.training) or self.drop_prob <= 0.0:
@@ -230,7 +232,7 @@ class AdaptiveDropBlockChannel1D(nn.Module):
             padding=self.block_size // 2)
 
         if self.block_size % 2 == 0:
-            thresholds = thresholds[:, :, :-1]
+            thresholds = thresholds[:, :, :-1, :-1]
         gamma = self._compute_gamma()
         tops, top_indices = torch.topk(
             thresholds.flatten(), int(x.numel() * gamma))
@@ -250,23 +252,23 @@ class AdaptiveDropBlockChannel1D(nn.Module):
         return block_mask
 
     def _compute_gamma(self):
-        return self.drop_prob / (self.block_size)
+        return self.drop_prob / (self.block_size ** 2)
 
 
 
-class ReverseAdaptiveDropBlockChannel1D(AdaptiveDropBlockChannel1D):
+class ReverseAdaptiveDropBlockChannel2D(AdaptiveDropBlockChannel2D):
     def __init__(self, drop_prob, block_size, scheduler_params=None):
-        super(ReverseAdaptiveDropBlockChannel1D, self).__init__(
+        super(ReverseAdaptiveDropBlockChannel2D, self).__init__(
             drop_prob=drop_prob, 
             block_size=block_size, 
             scheduler_params=scheduler_params)
-        self.pool = torch.nn.AvgPool1d(kernel_size=block_size, stride=1, padding=block_size//2)
+        self.pool = torch.nn.AvgPool2d(kernel_size=block_size, stride=1, padding=block_size//2)
         # self.upsample = torch.nn.ConvTranspose2d(channel_size, channel_size, block_size, bias=False)
         # self.upsample.weight.data.fill_(1.0)
 
     def forward(self, x):
-        assert x.dim() == 3, \
-            "Expected input with 3 dimensions (bsize, channels, height, width)"
+        assert x.dim() == 4, \
+            "Expected input with 4 dimensions (bsize, channels, height, width)"
         if (not self.training) or self.drop_prob <= 0.0:
             return x
         else:
@@ -283,8 +285,6 @@ class ReverseAdaptiveDropBlockChannel1D(AdaptiveDropBlockChannel1D):
 
             # place mask on input device
             mask = mask.to(x.device)
-            print(mask.sum() / mask.numel())
-            import pdb; pdb.set_trace()
 
             # compute block mask
             # block_mask = self._compute_block_mask(mask)
@@ -301,7 +301,6 @@ class ReverseAdaptiveDropBlockChannel1D(AdaptiveDropBlockChannel1D):
             '''
 
             return out
-
     def _thresholding(self, x):
         #print(self.drop_prob, 'inside thresholding')
 
@@ -329,7 +328,7 @@ class ReverseAdaptiveDropBlockChannel1D(AdaptiveDropBlockChannel1D):
         # print('gamma', gamma, 'mask', mask.sum()/mask.numel())
         # print((res>0).sum()/res.numel())
         if self.block_size % 2 == 0:
-            res = res[:, :, :-1]
+            res = res[:, :, :-1, :-1]
         return (res == 0).float()
         # print(topk, gamma, bar)
         # # # print(tops, thresholds)
