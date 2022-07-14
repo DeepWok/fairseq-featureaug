@@ -1,4 +1,4 @@
-DropBlock2D:
+DropBlock1D:
   drop_prob: 0.0
   block_size: 4
   scheduler_params:
