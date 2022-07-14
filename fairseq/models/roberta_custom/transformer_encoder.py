@@ -315,7 +315,6 @@ class TransformerEncoderBase(FairseqEncoder):
                 fc_result = None
             t_name = f'encoder_layer_{i}'
             if self.training and t_name in self.transforms:
-                import pdb; pdb.set_trace()
                 x = self.transforms[t_name](x)
 
             if return_all_hiddens and not torch.jit.is_scripting():
