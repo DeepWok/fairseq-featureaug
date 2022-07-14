@@ -1,0 +1,7 @@
+DropBlock2D:
+  drop_prob: 0.0
+  block_size: 4
+  scheduler_params:
+      start_value: 0.0
+      end_value: 0.2
+      num_steps: 3927020

@@ -29,21 +29,17 @@ class DropBlock1D(nn.Module):
         self.drop_prob = drop_prob
         self.block_size = block_size
         self.scheduler_params = scheduler_params
+        self._step = 0
         if self.scheduler_params is not None:
             self.start_value = self.scheduler_params.get('start_value', 0.0)
-            # self.end_value = self.scheduler_params.get('end_value', 0.25)
-            self.milestones =  self.scheduler_params.get('milestones', [100])
-            self.values =  self.scheduler_params.get('values', [0.25])
+            self.end_value = self.scheduler_params.get('end_value', 0.25)
+            self.num_steps = self.scheduler_params.get('num_samples', 10000)
             self.drop_prob = self.start_value
 
-    def milestone_step(self, epoch):
-        prev_m = 0
-        for i, m in enumerate(self.milestones):
-            if epoch < m and epoch >= prev_m:
-                self.drop_prob = self.values[i]
-                return
-            prev_m = m
-
+    def scheduler_step(self):
+        if self.scheduler_params is not None:
+            self.drop_prob = self.start_value + (self.end_value - self.start_value) * (self._step / self.num_steps)
+            self.drop_prob = min(self.drop_prob, self.end_value)
 
     def forward(self, x):
         # shape: (bsize, channels, height, width)
@@ -71,6 +67,9 @@ class DropBlock1D(nn.Module):
             # scale output
             out = out * block_mask.numel() / block_mask.sum()
 
+            # step
+            self._step += out.shape[0]
+            self.scheduler_step()
             return out
 
     def _compute_block_mask(self, mask):
@@ -98,21 +97,17 @@ class DropBlockChannel1D(nn.Module):
         self.drop_prob = drop_prob
         self.block_size = block_size
         self.scheduler_params = scheduler_params
+        self._step = 0
         if self.scheduler_params is not None:
             self.start_value = self.scheduler_params.get('start_value', 0.0)
-            # self.end_value = self.scheduler_params.get('end_value', 0.25)
-            self.milestones = self.scheduler_params.get('milestones', [100])
-            self.values = self.scheduler_params.get('values', [0.25])
+            self.end_value = self.scheduler_params.get('end_value', 0.25)
+            self.num_steps = self.scheduler_params.get('num_samples', 10000)
             self.drop_prob = self.start_value
 
-    def milestone_step(self, epoch):
-        prev_m = 0
-        for i, m in enumerate(self.milestones):
-            if epoch < m and epoch >= prev_m:
-                self.drop_prob = self.values[i]
-                return
-            prev_m = m
-
+    def scheduler_step(self):
+        if self.scheduler_params is not None:
+            self.drop_prob = self.start_value + (self.end_value - self.start_value) * (self._step / self.num_steps)
+            self.drop_prob = min(self.drop_prob, self.end_value)
 
     def forward(self, x):
 
@@ -140,6 +135,9 @@ class DropBlockChannel1D(nn.Module):
             # scale output
             out = out * block_mask.numel() / block_mask.sum()
 
+            # step
+            self._step += out.shape[0]
+            self.scheduler_step()
             return out
 
     def _compute_block_mask(self, mask):
@@ -167,20 +165,17 @@ class AdaptiveDropBlockChannel1D(nn.Module):
         # self.threshold = threshold
         self.block_size = block_size
         self.scheduler_params = scheduler_params
+        self._step = 0
         if self.scheduler_params is not None:
             self.start_value = self.scheduler_params.get('start_value', 0.0)
-            # self.end_value = self.scheduler_params.get('end_value', 0.25)
-            self.milestones = self.scheduler_params.get('milestones', [100])
-            self.values = self.scheduler_params.get('values', [0.25])
+            self.end_value = self.scheduler_params.get('end_value', 0.25)
+            self.num_steps = self.scheduler_params.get('num_samples', 10000)
             self.drop_prob = self.start_value
 
-    def milestone_step(self, epoch):
-        prev_m = 0
-        for i, m in enumerate(self.milestones):
-            if epoch < m and epoch >= prev_m:
-                self.drop_prob = self.values[i]
-                return
-            prev_m = m
+    def scheduler_step(self):
+        if self.scheduler_params is not None:
+            self.drop_prob = self.start_value + (self.end_value - self.start_value) * (self._step / self.num_steps)
+            self.drop_prob = min(self.drop_prob, self.end_value)
 
     def forward(self, x):
 
@@ -213,12 +208,15 @@ class AdaptiveDropBlockChannel1D(nn.Module):
             out = x * block_mask
 
             # scale output
-            # out = out * block_mask.numel() / block_mask.sum()
+            out = out * block_mask.numel() / block_mask.sum()
             '''
             if self.drop_prob != 0.0:
                 print(self.drop_prob, block_mask.sum() / block_mask.numel())
             '''
 
+            # step
+            self._step += out.shape[0]
+            self.scheduler_step()
             return out
 
     def _thresholding(self, x):
@@ -283,8 +281,6 @@ class ReverseAdaptiveDropBlockChannel1D(AdaptiveDropBlockChannel1D):
 
             # place mask on input device
             mask = mask.to(x.device)
-            print(mask.sum() / mask.numel())
-            import pdb; pdb.set_trace()
 
             # compute block mask
             # block_mask = self._compute_block_mask(mask)
@@ -294,12 +290,15 @@ class ReverseAdaptiveDropBlockChannel1D(AdaptiveDropBlockChannel1D):
             out = out * mask.numel() / mask.sum()
 
             # scale output
-            # out = out * block_mask.numel() / block_mask.sum()
+            out = out * block_mask.numel() / block_mask.sum()
             '''
             if self.drop_prob != 0.0:
                 print(self.drop_prob, block_mask.sum() / block_mask.numel())
             '''
 
+            # step
+            self._step += out.shape[0]
+            self.scheduler_step()
             return out
 
     def _thresholding(self, x):
