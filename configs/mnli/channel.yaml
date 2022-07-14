@@ -1,4 +1,4 @@
-DropBlockChannel1D:
+drop_block_head:
   drop_prob: 0.0
   block_size: 4
   scheduler_params:
