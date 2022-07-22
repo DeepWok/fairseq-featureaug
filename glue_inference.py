@@ -3,7 +3,15 @@ from fairseq.models.roberta import RobertaModel
 label_map = {0: 'contradiction', 1: 'neutral', 2: 'entailment'}
 ncorrect, nsamples = 0, 0
 
-path = 'outputs/2022-07-13/12-08-52/checkpoints/'
+path = 'outputs/2022-07-14/12-06-11/checkpoints/'
+
+path = 'outputs/2022-07-17/11-41-27/checkpoints/'
+# channel 0.1
+path = 'outputs/2022-07-18/09-10-11/checkpoints/'
+# dropout 0.1
+path = 'outputs/2022-07-19/16-30-00/checkpoints/'
+# adaptive 0.1
+path = 'outputs/2022-07-19/16-30-02/checkpoints/'
 model = RobertaModel.from_pretrained(path, checkpoint_file='checkpoint_best.pt', data_name_or_path='MNLI-bin')
 model.cuda()
 model.eval()

@@ -110,9 +110,9 @@ class TransformerEncoderBase(FairseqEncoder):
             import yaml
             transform_cfg = yaml.safe_load(open(my_transform, 'r'))
             mykey = list(transform_cfg.keys())[0] 
-            t = get_transform(mykey, transform_cfg[mykey])
             transforms = {}
             for i in range(self.num_layers):
+                t = get_transform(mykey, transform_cfg[mykey])
                 transforms[f'encoder_layer_{i}'] = t
             self.transforms = nn.ModuleDict(transforms)
 
@@ -316,6 +316,8 @@ class TransformerEncoderBase(FairseqEncoder):
             t_name = f'encoder_layer_{i}'
             if self.training and t_name in self.transforms:
                 x = self.transforms[t_name](x)
+            #import pdb; pdb.set_trace()
+            i += 1
 
             if return_all_hiddens and not torch.jit.is_scripting():
                 assert encoder_states is not None

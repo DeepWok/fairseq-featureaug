@@ -33,20 +33,22 @@ class DropBlock1D(nn.Module):
         if self.scheduler_params is not None:
             self.start_value = self.scheduler_params.get('start_value', 0.0)
             self.end_value = self.scheduler_params.get('end_value', 0.25)
-            self.num_steps = self.scheduler_params.get('num_samples', 10000)
+            self.num_steps = self.scheduler_params.get('num_steps', 10000)
             self.drop_prob = self.start_value
 
     def scheduler_step(self):
         if self.scheduler_params is not None:
             self.drop_prob = self.start_value + (self.end_value - self.start_value) * (self._step / self.num_steps)
             self.drop_prob = min(self.drop_prob, self.end_value)
+            if (self._step % (1000) == 0):
+                print(self._step, self.drop_prob, self.num_steps)
 
     def forward(self, x):
         # shape: (bsize, channels, height, width)
         assert x.dim() == 3, \
             "Expected input with 4 dimensions (bsize, channels, height, width)"
 
-        if not self.training or self.drop_prob == 0.:
+        if not self.training or (self.drop_prob == 0. and self.scheduler_params is None):
             return x
         else:
             # get gamma value
@@ -68,9 +70,10 @@ class DropBlock1D(nn.Module):
             out = out * block_mask.numel() / block_mask.sum()
 
             # step
-            self._step += out.shape[0]
+            self._step += 1
             self.scheduler_step()
-            return out
+            #self._step += out.shape[1]
+            return out.half()
 
     def _compute_block_mask(self, mask):
         block_mask = F.max_pool1d(input=mask[:, None, :],
@@ -101,20 +104,22 @@ class DropBlockChannel1D(nn.Module):
         if self.scheduler_params is not None:
             self.start_value = self.scheduler_params.get('start_value', 0.0)
             self.end_value = self.scheduler_params.get('end_value', 0.25)
-            self.num_steps = self.scheduler_params.get('num_samples', 10000)
+            self.num_steps = self.scheduler_params.get('num_steps', 10000)
             self.drop_prob = self.start_value
 
     def scheduler_step(self):
         if self.scheduler_params is not None:
             self.drop_prob = self.start_value + (self.end_value - self.start_value) * (self._step / self.num_steps)
             self.drop_prob = min(self.drop_prob, self.end_value)
+            if (self._step % (1000) == 0):
+                print(self._step, self.drop_prob, self.num_steps)
 
     def forward(self, x):
 
         assert x.dim() == 3, \
             "Expected input with 4 dimensions (bsize, channels, height, width)"
 
-        if not self.training or self.drop_prob == 0.:
+        if not self.training or (self.drop_prob == 0. and self.scheduler_params is None):
             return x
         else:
             # get gamma value
@@ -136,9 +141,10 @@ class DropBlockChannel1D(nn.Module):
             out = out * block_mask.numel() / block_mask.sum()
 
             # step
-            self._step += out.shape[0]
             self.scheduler_step()
-            return out
+            self._step += 1
+
+            return out.half()
 
     def _compute_block_mask(self, mask):
         block_mask = F.max_pool1d(
@@ -169,7 +175,7 @@ class AdaptiveDropBlockChannel1D(nn.Module):
         if self.scheduler_params is not None:
             self.start_value = self.scheduler_params.get('start_value', 0.0)
             self.end_value = self.scheduler_params.get('end_value', 0.25)
-            self.num_steps = self.scheduler_params.get('num_samples', 10000)
+            self.num_steps = self.scheduler_params.get('num_steps', 10000)
             self.drop_prob = self.start_value
 
     def scheduler_step(self):
@@ -182,7 +188,7 @@ class AdaptiveDropBlockChannel1D(nn.Module):
         assert x.dim() == 3, \
             "Expected input with 4 dimensions (bsize, channels, height, width)"
 
-        if (not self.training) or self.drop_prob <= 0.0:
+        if not self.training or (self.drop_prob == 0. and self.scheduler_params is None):
             return x
         else:
             # if self.drop_prob < random.random():
@@ -215,9 +221,9 @@ class AdaptiveDropBlockChannel1D(nn.Module):
             '''
 
             # step
-            self._step += out.shape[0]
+            self._step += 1
             self.scheduler_step()
-            return out
+            return out.half()
 
     def _thresholding(self, x):
         x = torch.abs(x)
@@ -265,7 +271,8 @@ class ReverseAdaptiveDropBlockChannel1D(AdaptiveDropBlockChannel1D):
     def forward(self, x):
         assert x.dim() == 3, \
             "Expected input with 3 dimensions (bsize, channels, height, width)"
-        if (not self.training) or self.drop_prob <= 0.0:
+
+        if not self.training or (self.drop_prob == 0. and self.scheduler_params is None):
             return x
         else:
             # if self.drop_prob < random.random():
@@ -289,17 +296,15 @@ class ReverseAdaptiveDropBlockChannel1D(AdaptiveDropBlockChannel1D):
             out = x * mask
             out = out * mask.numel() / mask.sum()
 
-            # scale output
-            out = out * block_mask.numel() / block_mask.sum()
             '''
             if self.drop_prob != 0.0:
                 print(self.drop_prob, block_mask.sum() / block_mask.numel())
             '''
 
             # step
-            self._step += out.shape[0]
+            self._step += 1
             self.scheduler_step()
-            return out
+            return out.half()
 
     def _thresholding(self, x):
         #print(self.drop_prob, 'inside thresholding')

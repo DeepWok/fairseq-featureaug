@@ -3,5 +3,5 @@ adaptive:
   block_size: 4
   scheduler_params:
       start_value: 0.0
-      end_value: 0.2
-      num_steps: 3927020
+      end_value: 0.1
+      num_steps: 123873
