@@ -1,0 +1,6 @@
+dropout:
+  drop_prob: 0.1
+  scheduler_params:
+      start_value: 0.1
+      end_value: 0.1
+      num_steps: 123873
