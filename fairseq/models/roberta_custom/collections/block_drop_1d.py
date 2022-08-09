@@ -11,6 +11,7 @@ class Dropout1D(nn.Module):
         super(Dropout1D, self).__init__()
         self.drop_prob = drop_prob
         self.scheduler_params = scheduler_params
+        self.inplace=False
         if self.scheduler_params is not None:
             self.start_value = self.scheduler_params.get('start_value', 0.0)
             self.end_value = self.scheduler_params.get('end_value', 0.2)
@@ -22,7 +23,7 @@ class Dropout1D(nn.Module):
 
     def forward(self, x):
         if self.training:
-            x = F.dropout2d(
+            x = F.dropout3d(
                 x, p=self.drop_prob,
                 inplace=self.inplace)
         return x
