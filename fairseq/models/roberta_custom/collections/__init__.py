@@ -1,7 +1,7 @@
 # from .geometric import Rotate, RandomHorizontalFlip, RandomVerticalFlip
 # from .dropping import RandomCrop, RandomErasing, RandomErasingTest
 # from .block_drop import DropBlock2D, DropBlockChannel2D, AdaptiveDropBlockChannel2D, ReverseAdaptiveDropBlockChannel2D
-from .block_drop_1d import DropBlock1D, DropBlockChannel1D, ReverseAdaptiveDropBlockChannel1D
+from .block_drop_1d import DropBlock1D, DropBlockChannel1D, ReverseAdaptiveDropBlockChannel1D, Dropout1D
 # from .config import Configs
 
 
@@ -12,3 +12,5 @@ def get_transform(name, args):
         return DropBlockChannel1D(**args)
     elif name == 'adaptive':
         return ReverseAdaptiveDropBlockChannel1D(**args)
+    elif name == 'dropout':
+        return Dropout1D(**args)

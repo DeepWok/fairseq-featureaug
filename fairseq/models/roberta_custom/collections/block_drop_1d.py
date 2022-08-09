@@ -6,6 +6,40 @@ import torch.nn.functional as F
 from torch import nn
 
 
+class Dropout1D(nn.Module):
+    def __init__(self, drop_prob=0.5, scheduler_params=None):
+        super(Dropout1D, self).__init__()
+        self.drop_prob = drop_prob
+        self.scheduler_params = scheduler_params
+        if self.scheduler_params is not None:
+            self.start_value = self.scheduler_params.get('start_value', 0.0)
+            self.end_value = self.scheduler_params.get('end_value', 0.2)
+            self.max_epochs = self.scheduler_params.get('max_epochs', 0.0)
+            # self.end_value = self.scheduler_params.get('end_value', 0.25)
+            self.milestones = self.scheduler_params.get('milestones', [100])
+            self.values = self.scheduler_params.get('values', [0.25])
+            self.drop_prob = self.start_value
+
+    def forward(self, x):
+        if self.training:
+            x = F.dropout2d(
+                x, p=self.drop_prob,
+                inplace=self.inplace)
+        return x
+
+    def milestone_step(self, epoch):
+        prev_m = 0
+        for i, m in enumerate(self.milestones):
+            if epoch < m and epoch >= prev_m:
+                self.drop_prob = self.values[i]
+                return
+            prev_m = m
+
+    def linear_step(self, epoch):
+        self.drop_prob = self.start_value + \
+            (self.end_value - self.start_value) * (epoch / self.max_epochs)
+
+
 
 class DropBlock1D(nn.Module):
     r"""Randomly zeroes 2D spatial blocks of the input tensor.
