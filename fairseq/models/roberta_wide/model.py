@@ -628,7 +628,7 @@ class RobertaEncoder(FairseqEncoder):
 def base_architecture(args):
     # args.encoder_layers = safe_getattr(args, "encoder_layers", 12)
     args.encoder_layers = safe_getattr(args, "encoder_layers", 1)
-    args.encoder_embed_dim = safe_getattr(args, "encoder_embed_dim", 768)
+    args.encoder_embed_dim = safe_getattr(args, "encoder_embed_dim", 768*3)
     args.encoder_ffn_embed_dim = safe_getattr(args, "encoder_ffn_embed_dim", 3072)
     # args.encoder_attention_heads = safe_getattr(args, "encoder_attention_heads", 12)
     args.encoder_attention_heads = safe_getattr(args, "encoder_attention_heads", 144)

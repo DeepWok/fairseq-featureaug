@@ -9,11 +9,11 @@ CamemBERT: a Tasty French Language Model
 from fairseq.models import register_model
 
 from .hub_interface import RobertaHubInterface
-from .model import RobertaModel
+from .model import RobertaWideModel as RobertaModel
 
 
-@register_model("camembert")
-class CamembertModel(RobertaModel):
+@register_model("camembert_wide")
+class CamembertWideModel(RobertaModel):
     @classmethod
     def hub_models(cls):
         return {

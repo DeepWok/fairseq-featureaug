@@ -68,12 +68,12 @@ class RobertaEncDecModel(FairseqEncoderDecoderModel):
             if args.hack_layernorm_embedding:
                 args.layernorm_embedding = False
                 args.encoder_normalize_before = False
-            roberta_enc = roberta.RobertaModel.build_model(args, task)
+            roberta_enc = roberta.RobertaWideModel.build_model(args, task)
 
         return cls.from_roberta(roberta_enc, args, task.source_dictionary)
 
     @staticmethod
-    def from_roberta(roberta_enc: roberta.RobertaModel, args, dictionary):
+    def from_roberta(roberta_enc: roberta.RobertaWideModel, args, dictionary):
         encoder = roberta_enc.encoder.sentence_encoder
         vocab_size, embed_dim = encoder.embed_tokens.weight.shape
 
